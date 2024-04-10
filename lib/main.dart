@@ -51,6 +51,13 @@ class GpsMapAppState extends State<GpsMapApp> {
       tilt: 59.440717697143555,
       zoom: 19.151926040649414);
 
+  static const CameraPosition _seoultStation = CameraPosition(
+    // LatLng : 위도 경도 객체
+    target: LatLng(37.5540867, 126.97321),
+    // zoom : 얼마나 줌 할지
+    zoom: 14.4746,
+  );
+
   @override
   void initState() {
     super.initState();
@@ -59,6 +66,7 @@ class GpsMapAppState extends State<GpsMapApp> {
   }
 
   Future<void> init() async {
+    // 위치 값 얻기
     final position = await _determinePosition();
 
     print(position.toString());
@@ -69,7 +77,8 @@ class GpsMapAppState extends State<GpsMapApp> {
     return Scaffold(
       body: GoogleMap(
         mapType: MapType.hybrid,
-        initialCameraPosition: _kGooglePlex,
+        // 맵을 켜면 서울역으로
+        initialCameraPosition: _seoultStation,
         onMapCreated: (GoogleMapController controller) {
           // controller를 통해서 지도를 조작할 수 있다
           _controller.complete(controller);
@@ -85,9 +94,15 @@ class GpsMapAppState extends State<GpsMapApp> {
 
   Future<void> _goToTheLake() async {
     final GoogleMapController controller = await _controller.future;
-    await controller.animateCamera(CameraUpdate.newCameraPosition(_kLake));
+    final position = await Geolocator.getCurrentPosition();
+    final cameraPosition = CameraPosition(
+      target: LatLng(position.latitude, position.longitude),
+      zoom: 18,
+    );
+    await controller.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
   }
 
+  // 위치값 얻기
   Future<Position> _determinePosition() async {
     bool serviceEnabled;
     LocationPermission permission;
