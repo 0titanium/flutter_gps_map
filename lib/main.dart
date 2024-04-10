@@ -35,14 +35,18 @@ class GpsMapAppState extends State<GpsMapApp> {
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
 
+  // CameraPosition : 어느 위치를 비출지에 대한 객체
   static const CameraPosition _kGooglePlex = CameraPosition(
+    // LatLng : 위도 경도 객체
     target: LatLng(37.42796133580664, -122.085749655962),
+    // zoom : 얼마나 줌 할지
     zoom: 14.4746,
   );
 
   static const CameraPosition _kLake = CameraPosition(
       bearing: 192.8334901395799,
       target: LatLng(37.43296265331129, -122.08832357078792),
+      // tilt : 회전?
       tilt: 59.440717697143555,
       zoom: 19.151926040649414);
 
@@ -53,6 +57,7 @@ class GpsMapAppState extends State<GpsMapApp> {
         mapType: MapType.hybrid,
         initialCameraPosition: _kGooglePlex,
         onMapCreated: (GoogleMapController controller) {
+          // controller를 통해서 지도를 조작할 수 있다
           _controller.complete(controller);
         },
       ),
