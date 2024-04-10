@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 import 'package:geolocator/geolocator.dart';
 
 void main() {
@@ -33,32 +34,19 @@ class GpsMapApp extends StatefulWidget {
 }
 
 class GpsMapAppState extends State<GpsMapApp> {
-  final Completer<GoogleMapController> _controller =
-      Completer<GoogleMapController>();
+  // _controller = Completer<GoogleMapController>();로 하니깐 안됨
+  final Completer<GoogleMapController> _controller = Completer();
+
+  CameraPosition? _initialCameraPosition;
+
+  int _polylineIdCounter = 0;
+  Set<Polyline> _polylines = {};
+  LatLng? _prevPosition;
 
   // CameraPosition : 어느 위치를 비출지에 대한 객체
-  // static const CameraPosition _kGooglePlex = CameraPosition(
-  //   // LatLng : 위도 경도 객체
-  //   target: LatLng(37.42796133580664, -122.085749655962),
-  //   // zoom : 얼마나 줌 할지
-  //   zoom: 14.4746,
-  // );
-
-  // static const CameraPosition _kLake = CameraPosition(
-  //     bearing: 192.8334901395799,
-  //     target: LatLng(37.43296265331129, -122.08832357078792),
-  //     // tilt : 회전?
-  //     tilt: 59.440717697143555,
-  //     zoom: 19.151926040649414);
-
-  CameraPosition? _initialCameraPostion;
-
-  // static const CameraPosition _seoultStation = CameraPosition(
-  //   // LatLng : 위도 경도 객체
-  //   target: LatLng(37.5540867, 126.97321),
-  //   // zoom : 얼마나 줌 할지
-  //   zoom: 14.4746,
-  // );
+  // LatLng : 위도 경도 객체
+  // zoom : 얼마나 줌 할지
+  // tilt : 회전?
 
   @override
   void initState() {
@@ -71,44 +59,64 @@ class GpsMapAppState extends State<GpsMapApp> {
     // 위치 값 얻기
     final position = await _determinePosition();
 
-    _initialCameraPostion = CameraPosition(
+    _initialCameraPosition = CameraPosition(
       target: LatLng(position.latitude, position.longitude),
       zoom: 17,
     );
 
     setState(() {});
+
+    // 위치 정보를 얼마나 정밀하게 할 건지 조절
+    const locationSettings = LocationSettings();
+    Geolocator.getPositionStream(locationSettings: locationSettings)
+        .listen((Position position) {
+      _polylineIdCounter++;
+      final polylineId = PolylineId('$_polylineIdCounter');
+      final Polyline polyline = Polyline(
+        polylineId: polylineId,
+        color: Colors.red,
+        width: 3,
+        // 전 위도 경도 값도 알고 새로 바뀐 값도 알아야 함
+        points: [
+          _prevPosition ?? _initialCameraPosition!.target,
+          LatLng(position.latitude, position.longitude),
+        ],
+      );
+      setState(() {
+        _polylines.add(polyline);
+        _prevPosition = LatLng(position.latitude, position.longitude);
+      });
+
+      _moveCamera(position);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _initialCameraPostion == null
+      body: _initialCameraPosition == null
           ? const Center(
               child: CircularProgressIndicator(),
             )
           : GoogleMap(
               mapType: MapType.normal,
               // 맵을 켜면 서울역으로
-              initialCameraPosition: _initialCameraPostion!,
+              initialCameraPosition: _initialCameraPosition!,
               onMapCreated: (GoogleMapController controller) {
                 // controller를 통해서 지도를 조작할 수 있다
                 _controller.complete(controller);
               },
+              polylines: _polylines,
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _goToTheLake,
-        label: const Text('To the lake!'),
-        icon: const Icon(Icons.directions_boat),
-      ),
     );
   }
 
-  Future<void> _goToTheLake() async {
+  Future<void> _moveCamera(Position position) async {
     final GoogleMapController controller = await _controller.future;
-    final position = await Geolocator.getCurrentPosition();
+    // final position = await Geolocator.getCurrentPosition();
     final cameraPosition = CameraPosition(
       target: LatLng(position.latitude, position.longitude),
-      zoom: 18,
+      zoom: 17,
     );
     await controller
         .animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
