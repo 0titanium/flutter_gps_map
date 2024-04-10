@@ -37,26 +37,28 @@ class GpsMapAppState extends State<GpsMapApp> {
       Completer<GoogleMapController>();
 
   // CameraPosition : 어느 위치를 비출지에 대한 객체
-  static const CameraPosition _kGooglePlex = CameraPosition(
-    // LatLng : 위도 경도 객체
-    target: LatLng(37.42796133580664, -122.085749655962),
-    // zoom : 얼마나 줌 할지
-    zoom: 14.4746,
-  );
+  // static const CameraPosition _kGooglePlex = CameraPosition(
+  //   // LatLng : 위도 경도 객체
+  //   target: LatLng(37.42796133580664, -122.085749655962),
+  //   // zoom : 얼마나 줌 할지
+  //   zoom: 14.4746,
+  // );
 
-  static const CameraPosition _kLake = CameraPosition(
-      bearing: 192.8334901395799,
-      target: LatLng(37.43296265331129, -122.08832357078792),
-      // tilt : 회전?
-      tilt: 59.440717697143555,
-      zoom: 19.151926040649414);
+  // static const CameraPosition _kLake = CameraPosition(
+  //     bearing: 192.8334901395799,
+  //     target: LatLng(37.43296265331129, -122.08832357078792),
+  //     // tilt : 회전?
+  //     tilt: 59.440717697143555,
+  //     zoom: 19.151926040649414);
 
-  static const CameraPosition _seoultStation = CameraPosition(
-    // LatLng : 위도 경도 객체
-    target: LatLng(37.5540867, 126.97321),
-    // zoom : 얼마나 줌 할지
-    zoom: 14.4746,
-  );
+  CameraPosition? _initialCameraPostion;
+
+  // static const CameraPosition _seoultStation = CameraPosition(
+  //   // LatLng : 위도 경도 객체
+  //   target: LatLng(37.5540867, 126.97321),
+  //   // zoom : 얼마나 줌 할지
+  //   zoom: 14.4746,
+  // );
 
   @override
   void initState() {
@@ -69,21 +71,30 @@ class GpsMapAppState extends State<GpsMapApp> {
     // 위치 값 얻기
     final position = await _determinePosition();
 
-    print(position.toString());
+    _initialCameraPostion = CameraPosition(
+      target: LatLng(position.latitude, position.longitude),
+      zoom: 17,
+    );
+
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GoogleMap(
-        mapType: MapType.hybrid,
-        // 맵을 켜면 서울역으로
-        initialCameraPosition: _seoultStation,
-        onMapCreated: (GoogleMapController controller) {
-          // controller를 통해서 지도를 조작할 수 있다
-          _controller.complete(controller);
-        },
-      ),
+      body: _initialCameraPostion == null
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : GoogleMap(
+              mapType: MapType.normal,
+              // 맵을 켜면 서울역으로
+              initialCameraPosition: _initialCameraPostion!,
+              onMapCreated: (GoogleMapController controller) {
+                // controller를 통해서 지도를 조작할 수 있다
+                _controller.complete(controller);
+              },
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _goToTheLake,
         label: const Text('To the lake!'),
@@ -99,7 +110,8 @@ class GpsMapAppState extends State<GpsMapApp> {
       target: LatLng(position.latitude, position.longitude),
       zoom: 18,
     );
-    await controller.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+    await controller
+        .animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
   }
 
   // 위치값 얻기
